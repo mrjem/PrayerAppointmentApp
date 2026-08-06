@@ -17,10 +17,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Gradle Project Files
+      - name: Init Android Project
         run: |
-          mkdir -p app/src/main/res/values
-          echo '<resources><string name="app_name">Prayer Appointments</string></resources>' > app/src/main/res/values/strings.xml
+          mkdir -p app/src/main/res/values app/src/main/java/com/example/prayerappointment
+          
+          cat << 'EOF' > app/src/main/res/values/strings.xml
+          <resources>
+              <string name="app_name">Prayer Appointments</string>
+          </resources>
+          EOF
 
           cat << 'EOF' > settings.gradle
           rootProject.name = "PrayerAppointmentApp"
@@ -34,7 +39,7 @@ jobs:
                   mavenCentral()
               }
               dependencies {
-                  classpath 'com.android.tools.build:gradle:8.1.1'
+                  classpath "com.android.tools.build:gradle:8.1.0"
               }
           }
           allprojects {
@@ -46,9 +51,7 @@ jobs:
           EOF
 
           cat << 'EOF' > app/build.gradle
-          plugins {
-              id 'com.android.application'
-          }
+          apply plugin: 'com.android.application'
 
           android {
               namespace 'com.example.prayerappointment'
@@ -67,11 +70,12 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build APK with Gradle
-        run: gradle assembleDebug
+      - name: Build APK
+        run: gradle assembleDebug --stacktrace
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: PrayerAppointment-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/

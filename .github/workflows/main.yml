@@ -17,23 +17,90 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Create Minimal Build Files
+      - name: Setup Gradle & Project Structure
         run: |
           mkdir -p app/src/main/res/values
           echo '<resources><string name="app_name">Prayer Appointments</string></resources>' > app/src/main/res/values/strings.xml
-          echo 'include(":app")' > settings.gradle
-          echo 'rootProject.name = "Prayer Appointment"' >> settings.gradle
-          echo 'plugins { id("com.android.application") version "8.1.0" apply false }' > build.gradle
-          echo 'plugins { id("com.android.application") }' > app/build.gradle
-          echo 'android { namespace "com.example.prayerappointment"; compileSdk 34; defaultConfig { applicationId "com.example.prayerappointment"; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0"; } }' >> app/build.gradle
+          
+          cat << 'EOF' > settings.gradle.kts
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "PrayerAppointmentApp"
+          include(":app")
+          EOF
 
-      - name: Build APK (Debug)
-        run: |
-          chmod +x gradlew || true
-          echo "Building APK..."
+          cat << 'EOF' > build.gradle.kts
+          plugins {
+              id("com.android.application") version "8.2.0" apply false
+              id("org.jetbrains.kotlin.android") version "1.9.20" apply false
+          }
+          EOF
+
+          cat << 'EOF' > app/build.gradle.kts
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+
+          android {
+              namespace = "com.example.prayerappointment"
+              compileSdk = 34
+
+              defaultConfig {
+                  applicationId = "com.example.prayerappointment"
+                  minSdk = 24
+                  targetSdk = 34
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions {
+                  jvmTarget = "17"
+              }
+              buildFeatures {
+                  compose = true
+              }
+              composeOptions {
+                  kotlinCompilerExtensionVersion = "1.5.4"
+              }
+          }
+
+          dependencies {
+              implementation("androidx.core:core-ktx:1.12.0")
+              implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+              implementation("androidx.activity:activity-compose:1.8.2")
+              implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+              implementation("androidx.compose.ui:ui")
+              implementation("androidx.compose.ui:ui-graphics")
+              implementation("androidx.compose.ui:ui-tooling-preview")
+              implementation("androidx.compose.material3:material3")
+          }
+          EOF
+
+      - name: Setup Gradle Wrapper
+        run: gradle wrapper
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/
+          name: PrayerAppointment-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
